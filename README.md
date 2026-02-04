@@ -26,7 +26,7 @@ It supports creating, updating, deleting, and listing users using run time memor
 
 1. Install dependencies:
 ```
-pip install fastapi uvicorn
+pip install -r requirements.txt
 ```
 
 2. Start the server:
