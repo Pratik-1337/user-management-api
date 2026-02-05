@@ -1,16 +1,23 @@
 from fastapi import FastAPI, Query, HTTPException
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-class User_Data(BaseModel):
-    name: str
-    age: int
-    profession: str
+class UserCreate(BaseModel):
+    # id: int
+    name: str = Field(min_length=2)
+    age: int = Field(gt=0)
+    profession: Optional[str] = None
 
-class Update_User_Data(BaseModel):
+class UserUpdate(BaseModel):
     name: Optional[str] = None
     age: Optional[int] = None
     profession: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    age: int
+    profession: str
 
 users = {}
 app = FastAPI()
@@ -19,43 +26,42 @@ app = FastAPI()
 def home():
     return "Hello"
 
-@app.post("/create-user/{user_id}")
-def create_user(user_id: int, user_data: User_Data):
-    if user_id in users:
-        raise HTTPException(status_code=404, detail="User ID already Exist")
-    
-    users[user_id] = user_data
-    return "User Created Successfully"
+@app.post("/users")
+def create_user(user: UserCreate):
+    user_id = len(users) + 1
+    users[user_id] = user.model_dump()
+    users[user_id]["id"] = user_id
+    return users[user_id]
 
-@app.delete("/delete-user")
-def delete_user(user_id: int = Query(..., description="ID of the User to Delete")):
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int):
     if user_id not in users:
         raise HTTPException(status_code=404, detail="User ID does not Exist")
     
     del users[user_id]
     return "Deleted User Successfully"
 
-@app.put("/update-user/{user_id}")
-def update_user(user_id: int, user_data: Update_User_Data):
+@app.put("/users/{user_id}")
+def update_user(user_id: int, user:UserUpdate):
     if user_id not in users:
-        raise HTTPException(status_code=404, detail="User ID does not Exist")
+        raise HTTPException(status_code=404, detail="User not found")
     
-    users[user_id] = user_data
-    return "User Updated Successfully"
+    users[user_id].update(user.model_dump(exclude_unset=True))
+    return users[user_id]
 
-@app.get("/list-users")
+@app.get("/users")
 def list_users():
     return list(users.values())
 
-@app.get("/user-info-by-id/{user_id}")
+@app.get("/users/{user_id}")
 def user_info_by_id(user_id: int, fields: Optional[str] = Query(None, description="Comma-separated fields, e.g. name,age")):
     if user_id not in users:
         raise HTTPException(status_code=404, detail="User ID does not Exist")
     
     if fields:
-        field = fields.split(",")
+        field = [f.strip() for f in fields.split(",")]
         filtered_user = {}
-        for k, v in users[user_id].dict().items():
+        for k, v in users[user_id].items():
             if k in field:
                 filtered_user[k] = v
         return filtered_user
