@@ -41,6 +41,4 @@ http://127.0.0.1:8000/docs
 
 ## Notes
 
-- Data is stored in memory using a Python dictionary
-- Data will reset when the server restarts
-- This project is meant for learning FastAPI and CRUD basics
+- Data is stored in a SQL Database
