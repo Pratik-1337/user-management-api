@@ -1,52 +1,17 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from app.users.schemas import UserResponse, UserCreate, UserUpdate
 from typing import Optional
-from pydantic import BaseModel, Field
-import sqlite3
+from app.database import get_db
 
-# Init Database
-def get_db():
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    return conn, cursor
-
-conn, cursor = get_db()
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY,
-    name TEXT,
-    age INTEGER,
-    profession TEXT
-)
-""")
-conn.commit()
-conn.close()
-
-class UserCreate(BaseModel):
-    name: str = Field(min_length=2)
-    age: int = Field(gt=0)
-    profession: Optional[str] = None
-
-class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    age: Optional[int] = None
-    profession: Optional[str] = None
-
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    age: int
-    profession: str
-
-
-app = FastAPI()
+user_router = APIRouter(prefix="/users", tags=["Users"])
 
 # home
-@app.get("/home")
-def home():
-    return "Hello"
+# @user_router.get("/home")
+# def home():
+#     return "Hello"
 
 # Create User
-@app.post("/users")
+@user_router.post("/")
 def create_user(user: UserCreate):
     
     conn, cursor = get_db()
@@ -65,7 +30,7 @@ def create_user(user: UserCreate):
     return "Created User Successfully"
 
 # Delete User
-@app.delete("/users/{user_id}")
+@user_router.delete("/{user_id}")
 def delete_user(user_id: int):
     conn, cursor = get_db()
     cursor.execute(
@@ -83,7 +48,7 @@ def delete_user(user_id: int):
 
 
 # Update user
-@app.patch("/users/{user_id}")
+@user_router.patch("/{user_id}")
 def update_user(user_id: int, user: UserUpdate):
     conn, cursor = get_db()
     cursor.execute(
@@ -115,7 +80,7 @@ def update_user(user_id: int, user: UserUpdate):
 
 
 # Get user by id
-@app.get("/users/{user_id}")
+@user_router.get("/{user_id}")
 def user_info(user_id: int, fields: Optional[str] = Query(None, description="Comma-separated fields, e.g. name,age")):
     
     allowed_fields = ["id", "name", "age", "profession"]
@@ -144,7 +109,7 @@ def user_info(user_id: int, fields: Optional[str] = Query(None, description="Com
     return dict(zip(selected_fields, row))
 
 # List all users
-@app.get("/users")
+@user_router.get("/")
 def list_users(fields: Optional[str] = Query(None, description="Comma-separated fields, e.g. name,age")):
     
     allowed_fields = ["id", "name", "age", "profession"]
